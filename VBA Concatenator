@@ -1,0 +1,85 @@
+Imports System
+Imports System.IO
+Module Module1
+    Sub Main()
+        Dim pathp As String
+        Dim path_vix As String
+
+        pathp = "C:\Users\Kornyous\UsefulEarnings\exported\HistoricalData 20181105(1)\"
+        path_vix = "C:\Users\Kornyous\UsefulEarnings\exported\El Vix\^VIX.csv"
+
+        Dim vix_values As New System.Collections.Specialized.StringCollection
+        Dim toremove As New Collection
+
+        Using vix_reader As New Microsoft.VisualBasic.FileIO.TextFieldParser(path_vix)
+            vix_reader.TextFieldType = FileIO.FieldType.Delimited
+            vix_reader.SetDelimiters(";")
+
+            Dim vix_crow As String()
+            While Not vix_reader.EndOfData
+                Try
+                    vix_crow = vix_reader.ReadFields()
+                    vix_values.Add(vix_crow.ElementAt(8))
+                Catch ex As Exception
+                End Try
+            End While
+        End Using
+
+        vix_values.Insert(1, "vix")
+
+
+        For Each found_path As String In My.Computer.FileSystem.GetFiles(pathp)
+            If Not found_path.Contains("^") Then
+
+                Using delwriter As StreamWriter = File.AppendText(found_path)
+                    Dim string_delimiter As String = ";;;;;;;;"
+                    For x = 0 To 4
+                        delwriter.WriteLine(vbCrLf & string_delimiter)
+                    Next
+                End Using
+
+                Using file_reader As New Microsoft.VisualBasic.FileIO.TextFieldParser(found_path)
+                    file_reader.TextFieldType = FileIO.FieldType.Delimited
+                    file_reader.SetDelimiters(";")
+
+                    Dim file_crow As String()
+                    Dim i As Integer
+                    Dim rows As New Collection
+                    While Not file_reader.EndOfData
+                        Try
+                            file_crow = file_reader.ReadFields()
+                            rows.Add(file_crow)
+                        Catch ex As Exception
+                        End Try
+                    End While
+                    Debug.WriteLine("rows: " & rows.Count & " vix: " & vix_values.Count)
+                    If rows.Count = (vix_values.Count) - 1 Then
+                        Dim obj_writer As New System.IO.StreamWriter(found_path)
+                        For i = 0 To rows.Count
+                            Try
+                                For Each field As String In rows(i)
+                                    obj_writer.Write(field & ";")
+                                Next
+                                obj_writer.Write(vix_values(i) & vbCrLf)
+                            Catch ex As Exception
+
+                            End Try
+                        Next
+                        obj_writer.Close()
+                    Else
+                        toremove.Add(found_path)
+                    End If
+
+                End Using
+            End If
+        Next
+
+        For Each path As String In toremove
+            Try
+                Kill(path)
+            Catch ex As Exception
+            End Try
+        Next
+    End Sub
+
+End Module
